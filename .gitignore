@@ -82,3 +82,6 @@ Content/Collections/
 
 # Local tool worktrees
 .kilo/
+
+# Stray LFS hooks created by external tools
+dev/
