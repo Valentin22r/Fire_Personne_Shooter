@@ -75,3 +75,10 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Per-user editor folders
+Content/Developers/
+Content/Collections/
+
+# Local tool worktrees
+.kilo/
