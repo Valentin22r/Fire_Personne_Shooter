@@ -1,0 +1,152 @@
+=====================================================================
+  FIRE PERSONNE SHOOTER - MENUS : ETAT ET PROCHAINES ETAPES
+  Branche git : menu        Derniere mise a jour : 20/10/2026
+=====================================================================
+
+---------------------------------------------------------------------
+ A. CE QUI EST FAIT
+---------------------------------------------------------------------
+
+[x] Map Content/Scene/Menu/Main_Menu (GameMode Override = GM_Menu)
+[x] GM_Menu (Player Controller = PC_Menu, Default Pawn = None)
+[x] PC_Menu : BeginPlay -> Create Widget (WBP_MainMenu) -> Add to Viewport
+[x] WBP_MainMenu
+      - Canvas > Background + WS_Menu (Widget Switcher)
+      - WS_Menu index 0 = VerticaleBox (BTN_Play, BTN_Settings, BTN_Credit, BTN_Quit)
+      - WS_Menu index 1 = LevelSelect (WBP_LevelSelect)
+      - WS_Menu index 2 = Briefing    (WBP_Briefing)
+      - Navigation : Play -> 1, LevelSelect.OnBack -> 0,
+        LevelSelect.OnLevelChosen -> Briefing.ShowLevel + index 2,
+        Briefing.OnBack -> 1
+[x] Systeme de niveaux "data-driven" (Content/UI/Menu/LevelSelect/)
+      - S_LevelInfo : MapName (Soft World Reference), DisplayName (Text),
+        Thumbnail, BriefingImage (Texture2D), BriefingText (Text)
+      - DT_Levels : 1 ligne "Forest" -> Level1_Forest
+      - WBP_LevelCards : miniature carree (image + nom), dispatcher OnSelected
+      - WBP_LevelSelect : grille generee depuis DT_Levels (Columns = 4),
+        Back en bas a droite, dispatchers OnBack / OnLevelChosen
+      - WBP_Briefing : titre, image, texte, Play (Open Level by Object
+        Reference) et Back
+[x] Parcours teste : Menu -> Play -> grille -> carte -> briefing -> Play
+    -> Level1_Forest se charge bien
+[x] Commit d889bed pousse sur "menu" (premiere version du systeme)
+
+    => Pour ajouter un niveau : ajouter une ligne dans DT_Levels, c'est tout.
+
+
+---------------------------------------------------------------------
+ B. A FINIR AVANT D'AVANCER (petites corrections)
+---------------------------------------------------------------------
+
+[x] 1. Quit ne marche plus
+       WBP_MainMenu > Graph : recreer
+       On Clicked (BTN_Quit) -> Quit Game
+         (Specific Player = Get Owning Player, Quit Preference = Quit)
+       Les events On Clicked de BTN_Settings et BTN_Credit ont aussi
+       disparu : on les recree aux etapes Options / Credits.
+
+[x] 2. Verifier PC_Menu (BeginPlay), apres Add to Viewport :
+       -> Set Input Mode UI Only (Player Controller = Self,
+          In Widget to Focus = widget cree)
+       -> Set Show Mouse Cursor (Self, coche)
+
+[x] 3. Controles en jeu (BP_Player > Event BeginPlay, a la fin) :
+       -> Set Input Mode Game Only (Get Player Controller)
+       -> Set Show Mouse Cursor (Get Player Controller, decoche)
+       Sinon la souris reste en "mode menu" apres Open Level.
+
+[x] 4. Project Settings > Maps & Modes
+       -> Game Default Map    = Main_Menu   (actuellement OpenWorld !)
+       -> Editor Startup Map  = Main_Menu   (optionnel)
+       Avec OpenWorld, une erreur de chargement envoie sur la map template.
+
+[~] 5. (REPORTE : map pas finie) Remplacer les textures provisoires de DT_Levels
+       (T_wallpaper_04 / 07) par une vraie capture du niveau :
+       viewport > menu ☰ > High Resolution Screenshot, importer dans
+       Content/UI/Textures, Texture Group = UI,
+       Compression = UserInterface2D. Et ecrire un vrai BriefingText.
+
+[x] 6. Commit des modifications en cours (pas encore commitees) :
+       GM_Menu, PC_Menu, S_LevelInfo, DT_Levels, WBP_Briefing,
+       WBP_LevelCards, WBP_LevelSelect, WBP_MainMenu
+       (passage de MapName en Soft World Reference, navigation, fixes)
+
+
+---------------------------------------------------------------------
+ C. PROCHAINES ETAPES (dans l'ordre conseille)
+---------------------------------------------------------------------
+
+[ ] ETAPE 4 - Menu Options (WBP_Options) -> WS_Menu index 3
+      - Deux onglets en haut : "Inputs" et "Audio"
+      - Un 2e Widget Switcher interne pour les pages :
+          index 0 = page Inputs
+          index 1 = page Audio (VIDE pour l'instant)
+      - Bouton Back -> dispatcher OnBack -> WS_Menu index 0
+      - Dans WBP_MainMenu : On Clicked (BTN_Settings) -> index 3
+      - La page Inputs est d'abord une page vide ; le vrai
+        changement de touches se fait a l'etape 8.
+
+[ ] ETAPE 5 - Credits (WBP_Credits) -> WS_Menu index 4
+      - Un texte long (noms, roles, assets utilises)
+      - Defilement avec une animation UMG : la Translation Y du texte
+        passe du bas de l'ecran a au-dessus du haut
+      - Au Construct (ou quand la page s'ouvre) : Play Animation
+      - Bouton Back -> OnBack -> WS_Menu index 0
+      - Dans WBP_MainMenu : On Clicked (BTN_Credit) -> index 4
+      - Idee : relancer l'animation a chaque ouverture de la page
+
+[ ] ETAPE 6 - Ecran de mort (WBP_Death) - en jeu, Content/UI/InGame
+      - "Vous etes mort" + Recommencer + Menu principal
+      - A l'affichage : Set Game Paused, Set Input Mode UI Only,
+        Show Mouse Cursor
+      - Recommencer : Open Level (niveau courant)
+        Menu principal : Open Level (Main_Menu)
+      - QUESTION A REGLER : d'ou vient l'evenement "joueur mort" ?
+        (variable de vie dans BP_Player ? gere par la branche enemies ?)
+
+[ ] ETAPE 7 - Ecran de victoire (WBP_Win) - en jeu
+      - "Victoire" + Niveau suivant + Recommencer + Menu principal
+      - Meme logique pause / souris que WBP_Death
+      - "Niveau suivant" : peut utiliser DT_Levels (ligne suivante)
+      - QUESTION A REGLER : comment gagne-t-on un niveau ?
+        (zone d'arrivee, tous les ennemis tues, tous les feux eteints...)
+
+[ ] ETAPE 8 - Page Inputs : changement des touches
+      - Systeme "Player Mappable Keys" d'Enhanced Input :
+          * Project Settings > Enhanced Input > Enable User Settings
+          * Dans IMC_Player : sur chaque mapping, Setting Behavior /
+            Player Mappable Key Settings avec un nom unique
+            (ex. "MoveForward", "Jump", "Shoot"...)
+      - Un widget ligne reutilisable (WBP_KeyRebindRow) :
+          nom de l'action + Input Key Selector
+      - Au changement : Enhanced Input User Settings > Map Player Key,
+        puis Save Settings
+      - Actions du projet : AI_MoveForward, AI_MoveRight, AI_Jump,
+        AI_Crouch, AI_Sprint, AI_Shoot, AI_ShootSecondary,
+        AI_LookUp, AI_Turn
+
+[ ] PLUS TARD (optionnel)
+      - Hover sur tous les boutons : creer un bouton reutilisable
+        WBP_MenuButton (style Normal / Hovered / Pressed regle une fois,
+        variable Label, dispatcher OnClicked, petite anim de scale)
+        puis remplacer les boutons existants
+      - Menu pause en jeu (Echap) : Reprendre / Options / Menu principal
+      - Page Audio : sliders de volume (Sound Classes + Sound Mix)
+
+
+---------------------------------------------------------------------
+ D. RAPPELS UTILES
+---------------------------------------------------------------------
+
+ - Un widget enfant previent son parent avec un Event Dispatcher
+   (OnBack, OnSelected...). Le parent (WBP_MainMenu) decide quelle
+   page afficher via Set Active Widget Index sur WS_Menu.
+ - Avant de coller des noeuds : creer d'abord les variables et
+   dispatchers (avec leurs parametres), sinon les noeuds arrivent casses.
+ - Ctrl+A / Suppr : bien verifier qu'on est dans l'onglet Graph et
+   pas Designer.
+ - Debug : Print String juste avant l'endroit qui casse ; les messages
+   vont aussi dans Saved/Logs/FirePersonneShooter.log
+ - Struct / map : Soft World Reference (pas Object Reference, sinon
+   toute la map est chargee en memoire avec la Data Table).
+ - Texte UMG blanc par defaut : attention aux fonds clairs.
